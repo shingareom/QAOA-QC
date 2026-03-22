@@ -1,0 +1,30 @@
+# ============================================================
+#  QAOA SETTINGS
+#  Edit this file to tune how the algorithm runs.
+#
+#  Rules:
+#   - Lines starting with # are comments (ignored)
+#   - Blank lines are ignored
+#   - Format:  KEY = VALUE
+# ============================================================
+
+# QAOA circuit depth — number of alternating Cost+Mixer layers
+# Higher p → closer to optimal solution, but slower to optimise
+# Recommended: 1 (fast demo), 2 (balanced), 3 (more accurate)
+p = 3
+
+# Number of circuit shots (measurement samples per evaluation)
+# Higher shots → smoother probability distribution, but slower
+# Recommended: 1024 (fast), 2048 (balanced), 4096 (accurate)
+shots = 4096
+
+# How many top bitstrings to show in the probability bar chart
+# Recommended: 8 – 16
+top_k = 10
+
+# Maximum iterations for the COBYLA classical optimiser
+# Recommended: 150 – 300
+max_iter = 300
+
+# Save output plots as PNG files? (True / False)
+save_figures = True

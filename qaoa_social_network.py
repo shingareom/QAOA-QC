@@ -13,6 +13,7 @@
 # ── Standard library ──────────────────────────────────────
 import warnings
 warnings.filterwarnings("ignore")
+import os
 
 # ── Third-party ───────────────────────────────────────────
 import numpy as np
@@ -28,39 +29,145 @@ from qiskit_aer import AerSimulator
 from scipy.optimize import minimize
 
 # ══════════════════════════════════════════════════════════
-#  1.  SOCIAL NETWORK DEFINITION
+#  1.  CONFIG FILE LOADERS
 # ══════════════════════════════════════════════════════════
 
-def build_social_network():
+def load_network(filepath: str = "network.txt"):
     """
-    Build the 6-user social network from the presentation.
+    Parse network.txt and return a NetworkX graph + users dict.
 
-    Nodes  : Alice(0), Bob(1), Carol(2), Dave(3), Eve(4), Frank(5)
-    Edges  : (node_i, node_j, weight)  — weight = interaction strength
+    File format:
+        [NODES]
+        Alice
+        Bob
+        ...
+
+        [EDGES]
+        Alice  Bob  3
+        ...
     """
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(
+            f"  ✗ Could not find '{filepath}'.\n"
+            f"    Make sure it is in the same folder as this script."
+        )
+
+    section = None
+    name_to_idx = {}
+    users       = {}
+    edges       = []
+
+    with open(filepath, "r") as f:
+        for raw_line in f:
+            line = raw_line.strip()
+
+            # Skip blank lines and comments
+            if not line or line.startswith("#"):
+                continue
+
+            # Section headers
+            if line.upper() == "[NODES]":
+                section = "nodes"
+                continue
+            if line.upper() == "[EDGES]":
+                section = "edges"
+                continue
+
+            if section == "nodes":
+                name = line.split()[0]          # first token only (safety)
+                idx  = len(name_to_idx)
+                name_to_idx[name] = idx
+                users[idx]        = name
+
+            elif section == "edges":
+                parts = line.split()
+                if len(parts) < 2:
+                    print(f"  ⚠ Skipping malformed edge line: '{line}'")
+                    continue
+                node_a = parts[0]
+                node_b = parts[1]
+                weight = float(parts[2]) if len(parts) >= 3 else 1.0
+
+                if node_a not in name_to_idx:
+                    raise ValueError(f"  ✗ Edge references unknown node '{node_a}' in: '{line}'")
+                if node_b not in name_to_idx:
+                    raise ValueError(f"  ✗ Edge references unknown node '{node_b}' in: '{line}'")
+
+                edges.append((name_to_idx[node_a], name_to_idx[node_b], weight))
+
+    if not users:
+        raise ValueError(f"  ✗ No nodes found in '{filepath}'. Check your [NODES] section.")
+    if not edges:
+        raise ValueError(f"  ✗ No edges found in '{filepath}'. Check your [EDGES] section.")
+
     G = nx.Graph()
-
-    # Add labelled nodes
-    users = {0: "Alice", 1: "Bob", 2: "Carol", 3: "Dave", 4: "Eve", 5: "Frank"}
     for idx, name in users.items():
         G.add_node(idx, name=name)
-
-    # Add weighted edges (interaction / influence scores)
-    edges = [
-        (0, 1, 3),   # Alice – Bob      (strong)
-        (0, 2, 2),   # Alice – Carol
-        (0, 3, 1),   # Alice – Dave     (weak)
-        (1, 2, 2),   # Bob   – Carol
-        (1, 4, 3),   # Bob   – Eve      (strong)
-        (2, 3, 2),   # Carol – Dave
-        (2, 4, 2),   # Carol – Eve
-        (3, 5, 3),   # Dave  – Frank    (strong)
-        (4, 5, 2),   # Eve   – Frank
-    ]
     for u, v, w in edges:
         G.add_edge(u, v, weight=w)
 
+    print(f"  Loaded network from '{filepath}'")
+    print(f"  → {len(users)} nodes : {', '.join(users.values())}")
+    print(f"  → {len(edges)} edges")
     return G, users
+
+
+def load_settings(filepath: str = "settings.txt") -> dict:
+    """
+    Parse settings.txt and return a dict of typed config values.
+
+    File format:
+        key = value   (# comments and blank lines are ignored)
+    """
+    defaults = {
+        "p":            1,
+        "shots":        2048,
+        "top_k":        10,
+        "max_iter":     200,
+        "save_figures": True,
+    }
+
+    if not os.path.exists(filepath):
+        print(f"  ⚠ '{filepath}' not found — using default settings.")
+        return defaults
+
+    settings = defaults.copy()
+    type_map = {
+        "p":            int,
+        "shots":        int,
+        "top_k":        int,
+        "max_iter":     int,
+        "save_figures": lambda v: v.strip().lower() == "true",
+    }
+
+    with open(filepath, "r") as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            key = key.strip().lower()
+            val = val.strip()
+            if key in type_map:
+                try:
+                    settings[key] = type_map[key](val)
+                except Exception:
+                    print(f"  ⚠ Could not parse setting '{key} = {val}' — using default.")
+            else:
+                print(f"  ⚠ Unknown setting '{key}' — ignored.")
+
+    print(f"  Loaded settings from '{filepath}'")
+    print(f"  → p={settings['p']}  shots={settings['shots']}  "
+          f"top_k={settings['top_k']}  max_iter={settings['max_iter']}  "
+          f"save_figures={settings['save_figures']}")
+    return settings
+
+
+def build_social_network(network_file: str = "network.txt"):
+    """Load the social network from a .txt file."""
+    return load_network(network_file)
 
 
 # ══════════════════════════════════════════════════════════
@@ -430,25 +537,31 @@ def plot_convergence(cost_history: list, title_suffix: str = ""):
 # ══════════════════════════════════════════════════════════
 
 def run_full_pipeline(p: int = 1, shots: int = 2048, top_k: int = 10,
-                      save_figures: bool = True):
+                      max_iter: int = 200, save_figures: bool = True,
+                      network_file: str = "network.txt"):
     """
     End-to-end QAOA pipeline for the social media Max-Cut problem.
 
+    All parameters can be driven from settings.txt / network.txt —
+    you should not need to edit this function directly.
+
     Parameters
     ----------
-    p           : QAOA depth (number of alternating layers)
-    shots       : Number of circuit shots for each measurement
-    top_k       : How many bitstrings to show in the probability chart
-    save_figures: If True, saves each plot as a PNG file
+    p            : QAOA depth (number of alternating layers)
+    shots        : Number of circuit shots for each measurement
+    top_k        : How many bitstrings to show in the probability chart
+    max_iter     : Maximum COBYLA optimiser iterations
+    save_figures : If True, saves each plot as a PNG file
+    network_file : Path to the network definition .txt file
     """
 
     # ── Step 1: Build graph ───────────────────────────────
-    G, users = build_social_network()
+    G, users = build_social_network(network_file)
     suffix   = f"  (p={p}, shots={shots})"
 
     # ── Step 2: Run QAOA ──────────────────────────────────
     best_bs, best_cut, counts, history, qc = run_qaoa(
-        G, p=p, shots=shots, verbose=True)
+        G, p=p, shots=shots, max_iter=max_iter, verbose=True)
 
     # ── Step 3: Visualise ─────────────────────────────────
     fig_graph = plot_social_network(G, best_bs, users, suffix)
@@ -481,16 +594,19 @@ def run_full_pipeline(p: int = 1, shots: int = 2048, top_k: int = 10,
 # ══════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    # ┌─────────────────────────────────────────┐
-    # │  ✏️  CONFIGURE YOUR RUN HERE            │
-    # │                                         │
-    # │  p     – QAOA depth (try 1, 2, 3)      │
-    # │  shots – measurement samples            │
-    # │  top_k – bars in probability chart      │
-    # └─────────────────────────────────────────┘
+    print("\n" + "═" * 55)
+    print("  QAOA Social Network Analysis — loading config files")
+    print("═" * 55)
+
+    # ── Read settings.txt ─────────────────────────────────
+    cfg = load_settings("settings.txt")
+
+    # ── Run the pipeline (network.txt is read inside) ─────
     results = run_full_pipeline(
-        p           = 1,       # ← change QAOA depth here
-        shots       = 2048,    # ← change shots here
-        top_k       = 10,      # ← top-k bitstrings to plot
-        save_figures= True,
+        p            = cfg["p"],
+        shots        = cfg["shots"],
+        top_k        = cfg["top_k"],
+        max_iter     = cfg["max_iter"],
+        save_figures = cfg["save_figures"],
+        network_file = "network.txt",
     )

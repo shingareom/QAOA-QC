@@ -1,0 +1,68 @@
+# ============================================================
+#  SOCIAL NETWORK DEFINITION
+#  Edit this file to change the users and connections.
+#
+#  NODES section  → one user per line:  Name
+#  EDGES section  → one connection per line:  Name1  Name2  Weight
+#
+#  Rules:
+#   - Lines starting with # are comments (ignored)
+#   - Blank lines are ignored
+#   - Node names must be a single word (no spaces), e.g. "Rohit" ✓ "Rohit Smith" ✗
+#   - Edge weight = interaction strength (positive number, e.g. 1, 2, 3)
+#   - Both names in an EDGE must exist in the NODES section
+# ============================================================
+
+[NODES]
+# ── Original 6 nodes ──────────────────────────────────────
+Rohit
+Bob
+Carol
+Dave
+Eve
+Frank
+# ── 10 newly added nodes ──────────────────────────────────
+Grace
+Henry
+Isla
+Jack
+Karen
+Leo
+Mia
+Nathan
+Olivia
+Peter
+
+[EDGES]
+# Format:  NodeA   NodeB   Weight
+# Weight = interaction / influence strength (higher = stronger connection)
+
+# ── Original edges ────────────────────────────────────────
+Rohit   Bob     3
+Rohit   Carol   2
+Rohit   Dave    1
+Bob     Carol   2
+Bob     Eve     3
+Carol   Dave    2
+Carol   Eve     2
+Dave    Frank   3
+Eve     Frank   2
+
+# ── Edges for new nodes ───────────────────────────────────
+Frank   Grace   2
+Grace   Henry   3
+Grace   Isla    1
+Henry   Jack    2
+Henry   Karen   3
+Isla    Leo     2
+Jack    Mia     1
+Karen   Nathan  3
+Leo     Olivia  2
+Mia     Peter   3
+Nathan  Olivia  1
+Olivia  Peter   2
+Peter   Rohit   1
+Grace   Bob     2
+Henry   Carol   1
+Karen   Eve     2
+Mia     Dave    1
