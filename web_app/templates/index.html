@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Social Network Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Quantum Social Network Analyzer</h1>
+            <p>Partition social networks dynamically using Max-Cut and QAOA</p>
+        </header>
+
+        <div class="main-content">
+            <aside class="controls panel">
+                <h2>Simulation Parameters</h2>
+                <form id="sim-form">
+                    <div class="input-group">
+                        <label for="num_nodes">Number of Users (Nodes): <span id="nodes-val">5</span></label>
+                        <input type="range" id="num_nodes" name="num_nodes" min="3" max="15" value="5" class="slider">
+                        <small>Range: 3 - 15 (keeps execution fast locally)</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="p_layers">QAOA Layers (Depth): <span id="layers-val">1</span></label>
+                        <input type="range" id="p_layers" name="p_layers" min="1" max="3" value="1" class="slider">
+                        <small>More layers = higher accuracy but slower</small>
+                    </div>
+
+                    <button type="submit" id="run-btn" class="btn-primary">
+                        <span class="btn-text">Run Quantum Simulation</span>
+                        <div class="loader hidden"></div>
+                    </button>
+                </form>
+            </aside>
+
+            <section class="results panel hidden" id="results-section">
+                <h2>Simulation Results</h2>
+                
+                <div class="summary-cards">
+                    <div class="card">
+                        <h3>Max-Cut Value</h3>
+                        <p class="highlight" id="res-cut">-</p>
+                    </div>
+                    <div class="card">
+                        <h3>Best Bitstring</h3>
+                        <p class="highlight" id="res-bitstring">-</p>
+                    </div>
+                </div>
+
+                <div class="groups-container">
+                    <div class="group group-a">
+                        <h3>Group A (Influencers)</h3>
+                        <ul id="list-group-a"></ul>
+                    </div>
+                    <div class="group group-b">
+                        <h3>Group B (Followers)</h3>
+                        <ul id="list-group-b"></ul>
+                    </div>
+                </div>
+
+                <div class="visualizations">
+                    <div class="viz-card">
+                        <h3>Social Network Partition</h3>
+                        <img id="img-graph" src="" alt="Network Graph">
+                    </div>
+                    <div class="viz-card">
+                        <h3>Measurement Probabilities</h3>
+                        <img id="img-prob" src="" alt="Probabilities">
+                    </div>
+                    <div class="viz-card">
+                        <h3>COBYLA Convergence</h3>
+                        <img id="img-conv" src="" alt="Convergence">
+                    </div>
+                    <div class="viz-card">
+                        <h3>QAOA Circuit</h3>
+                        <img id="img-circ" src="" alt="Circuit">
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <button class="lightbox-close" id="lightbox-close">&times;</button>
+        <img class="lightbox-img" id="lightbox-img" src="" alt="Zoomed Image">
+        <div class="lightbox-controls">
+            <button class="lightbox-btn" id="zoom-in">+</button>
+            <button class="lightbox-btn" id="zoom-out">-</button>
+            <button class="lightbox-btn" id="zoom-reset">Reset</button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
